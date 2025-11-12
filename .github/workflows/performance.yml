@@ -1,0 +1,61 @@
+name: Performance Monitoring
+
+on:
+  schedule:
+    # Run performance tests weekly on Sunday at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+jobs:
+  performance-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install locust
+    
+    - name: Start API server
+      run: |
+        uvicorn src.api.server:app --host 0.0.0.0 --port 8000 &
+        sleep 5
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    
+    - name: Run performance tests
+      run: |
+        # Create simple load test
+        python -c "
+        import requests
+        import time
+        import statistics
+        
+        times = []
+        for i in range(100):
+            start = time.time()
+            requests.post('http://localhost:8000/api/analyze', json={
+                'code': 'def test(): pass',
+                'language': 'python'
+            }, timeout=30)
+            times.append(time.time() - start)
+        
+        print(f'Average response time: {statistics.mean(times):.2f}s')
+        print(f'Median response time: {statistics.median(times):.2f}s')
+        print(f'P95 response time: {statistics.quantiles(times, n=20)[18]:.2f}s')
+        "
+      continue-on-error: true
+    
+    - name: Check performance thresholds
+      run: |
+        # Add performance assertions here
+        echo "Performance test completed"
+

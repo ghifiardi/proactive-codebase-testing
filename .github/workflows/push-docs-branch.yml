@@ -1,0 +1,78 @@
+name: Push Documentation to Branch
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'scripts/**'
+  workflow_dispatch:
+
+jobs:
+  push-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install python-pptx
+    
+    - name: Install pandoc
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc
+    
+    - name: Generate documentation
+      run: |
+        python3 scripts/generate_all_docs.py
+    
+    - name: Generate competitive analysis
+      working-directory: ../competitive advantage
+      run: |
+        python3 scripts/generate_competitive_docs.py || echo "Skipped"
+      continue-on-error: true
+    
+    - name: Configure Git
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+    
+    - name: Create or update docs branch
+      run: |
+        # Check if docs branch exists
+        if git ls-remote --heads origin docs | grep -q docs; then
+          git checkout docs
+          git pull origin docs
+        else
+          git checkout -b docs
+        fi
+        
+        # Copy documentation files
+        mkdir -p docs-generated
+        cp -r documentation_output/* docs-generated/ 2>/dev/null || true
+        cp -r ../competitive\ advantage/documentation_output/* docs-generated/competitive/ 2>/dev/null || true
+        
+        # Add and commit
+        git add docs-generated/
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "docs: auto-update documentation [skip ci]"
+          git push origin docs
+        fi
+

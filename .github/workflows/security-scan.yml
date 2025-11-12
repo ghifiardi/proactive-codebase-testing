@@ -1,0 +1,46 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run tests
+      run: |
+        pytest tests/ -v --cov=src/ --cov-report=term-missing
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    
+    - name: Run security analysis
+      if: github.event_name == 'pull_request'
+      run: |
+        python -m src.cli.main analyze . --format sarif --output results.sarif
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      continue-on-error: true
+    
+    - name: Upload SARIF results
+      if: github.event_name == 'pull_request'
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: results.sarif
+      continue-on-error: true
+

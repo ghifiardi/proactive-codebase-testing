@@ -1,0 +1,93 @@
+name: Upload Documentation Artifacts
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  upload-documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install python-pptx
+    
+    - name: Install pandoc
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc
+    
+    - name: Generate all documentation
+      run: |
+        python3 scripts/generate_all_docs.py
+    
+    - name: Generate competitive analysis docs
+      working-directory: ../competitive advantage
+      run: |
+        python3 scripts/generate_competitive_docs.py || echo "Skipped"
+      continue-on-error: true
+    
+    - name: Upload main documentation artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: platform-documentation
+        path: |
+          documentation_output/*.md
+          documentation_output/*.docx
+          documentation_output/*.pptx
+          documentation_output/*.html
+        retention-days: 90
+    
+    - name: Upload competitive analysis artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: competitive-analysis-docs
+        path: |
+          ../competitive advantage/documentation_output/*.md
+          ../competitive advantage/documentation_output/*.docx
+          ../competitive advantage/documentation_output/*.pptx
+        retention-days: 90
+      continue-on-error: true
+    
+    - name: Create documentation summary
+      run: |
+        cat > documentation_output/ARTIFACTS_SUMMARY.md << 'EOF'
+        # Documentation Artifacts Summary
+        
+        Generated: $(date)
+        Workflow: ${{ github.workflow }}
+        Run: ${{ github.run_number }}
+        
+        ## Main Platform Documentation
+        
+        - COMPLETE_DOCUMENTATION.md - Complete platform documentation
+        - Proactive_Codebase_Testing_Platform.docx - Word document
+        - Proactive_Codebase_Testing_Platform.pptx - PowerPoint presentation
+        - Proactive_Codebase_Testing_Platform.html - HTML version
+        
+        ## Competitive Analysis Documentation
+        
+        - COMPLETE_COMPETITIVE_ANALYSIS.md - Competitive analysis
+        - Competitive_Analysis_PCT.docx - Word document
+        - Competitive_Analysis_PCT.pptx - PowerPoint presentation
+        
+        ## Download
+        
+        All files are available as GitHub Actions artifacts.
+        Download from: Actions → Latest workflow run → Artifacts
+        EOF
+

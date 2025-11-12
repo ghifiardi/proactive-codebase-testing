@@ -1,0 +1,101 @@
+name: Create Documentation Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'docs-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Documentation version'
+        required: true
+        default: 'latest'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install python-pptx
+    
+    - name: Install pandoc
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc
+    
+    - name: Generate documentation
+      run: |
+        python3 scripts/generate_all_docs.py
+    
+    - name: Generate competitive analysis
+      working-directory: ../competitive advantage
+      run: |
+        python3 scripts/generate_competitive_docs.py || echo "Skipped"
+      continue-on-error: true
+    
+    - name: Create release archive
+      run: |
+        mkdir -p release-docs
+        cp -r documentation_output/* release-docs/ 2>/dev/null || true
+        cp -r ../competitive\ advantage/documentation_output/* release-docs/competitive/ 2>/dev/null || true
+        
+        # Create zip archive
+        cd release-docs
+        zip -r ../documentation-release.zip .
+        cd ..
+    
+    - name: Determine version
+      id: version
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: docs-${{ steps.version.outputs.version }}
+        name: Documentation Release ${{ steps.version.outputs.version }}
+        body: |
+          # Documentation Release ${{ steps.version.outputs.version }}
+          
+          ## Platform Documentation
+          - Complete Documentation (Markdown, DOCX, PPTX, HTML)
+          - API Reference
+          - Deployment Guide
+          - Integration Guide
+          
+          ## Competitive Analysis
+          - Competitive Analysis (Markdown, DOCX, PPTX)
+          - ROI Analysis
+          - Executive Summary
+          
+          ## Download
+          All documentation files are included in the release assets.
+        files: |
+          documentation-release.zip
+          documentation_output/*.docx
+          documentation_output/*.pptx
+          documentation_output/*.html
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
