@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      target: api
+    ports:
+      - "8000:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./src:/app/src:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  cli:
+    build:
+      context: .
+      target: production
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - .:/workspace
+      - ./reports:/app/reports
+    working_dir: /workspace
+    command: ["python", "-m", "src.cli.main", "analyze", "/workspace", "--format", "html", "--output", "/app/reports/report.html"]
+    profiles:
+      - analysis
+
+  dev:
+    build:
+      context: .
+      target: development
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - .:/app
+      - ./venv:/app/venv
+    working_dir: /app
+    command: ["tail", "-f", "/dev/null"]
+    profiles:
+      - dev
+

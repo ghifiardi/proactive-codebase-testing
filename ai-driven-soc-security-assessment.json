@@ -1,0 +1,29 @@
+{
+  "findings": [],
+  "summary": {
+    "total_findings": 0,
+    "findings_by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "info": 0
+    },
+    "findings_by_type": {
+      "security": 0,
+      "bug": 0,
+      "quality": 0,
+      "performance": 0,
+      "accessibility": 0
+    },
+    "files_analyzed": 26,
+    "total_lines": 7144,
+    "analysis_time_seconds": 101.65048694610596,
+    "timestamp": "2025-11-13T02:28:19.889840"
+  },
+  "metadata": {
+    "directory": "/Users/raditio.ghifiardigmail.com/Downloads/ai-driven-soc",
+    "analysis_type": "security",
+    "model": "claude-3-haiku-20240307"
+  }
+}
