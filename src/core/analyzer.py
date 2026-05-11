@@ -23,7 +23,7 @@ class CodeAnalyzer:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "claude-3-haiku-20240307",
+        model: str = "claude-sonnet-4-6",
         timeout: int = 30,
         max_retries: int = 3,
     ):

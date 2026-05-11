@@ -22,7 +22,7 @@ def analyzer(mock_api_key):
 def test_analyzer_initialization(analyzer):
     """Test analyzer initialization."""
     assert analyzer.api_key == "sk-test-key"
-    assert analyzer.model == "claude-3-5-sonnet-20241022"
+    assert analyzer.model == "claude-sonnet-4-6"
 
 
 def test_analyzer_missing_api_key():
