@@ -84,7 +84,7 @@ def analyze_with_custom_rules(code, language, custom_prompt):
     # Call Claude API with custom prompt
     client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-sonnet-4-6",
         max_tokens=4096,
         messages=[{
             "role": "user",
